@@ -27,17 +27,20 @@ test_command = "Ты жив?"
 
 menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
 canvas = types.KeyboardButton(canvas_command)
-test = types.KeyboardButton(canvas_command)
+test = types.KeyboardButton(test_command)
 menu.add(canvas, test)
 
-def requiring_canvas(msg: str) -> bool:
+def requiring_canvas(msg) -> bool:
     """
-    Вернёт True, если в msg встречаются оба слова "холст" и "сюда"
-    (регистр, порядок и позиция не важны).
-    Точное совпадение слов (по границам слова).
+    Проверяет, содержит ли сообщение слова 'холст' и 'сюда'
+    (игнорируя регистр, порядок и местоположение).
     """
-    return (bool(re.search(r'\bхолст\b', msg, flags=re.IGNORECASE)) and
-            bool(re.search(r'\bсюда\b', msg, flags=re.IGNORECASE)))
+    # Проверяем, что у сообщения вообще есть текст
+    if not hasattr(msg, "text") or not msg.text:
+        return False
+
+    text = msg.text.lower()
+    return "холст" in text and "сюда" in text
 
 # Вариант, допускающий приставки/окончания у "холст" (если нужен):
 #def requiring_canvas_fuzzy(msg: str) -> bool:
