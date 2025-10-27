@@ -7,6 +7,7 @@ from PIL import Image
 from flask import Flask
 import telebot
 from telebot import types
+import re
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
@@ -22,10 +23,29 @@ def home():
     return "I'm alive!"  # Render проверяет, жив ли сервер
 
 canvas_command = "Холст сюда!"
+test_command = "Ты жив?"
 
 menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
 canvas = types.KeyboardButton(canvas_command)
-menu.add(canvas)
+test = types.KeyboardButton(canvas_command)
+menu.add(canvas, test)
+
+def requiring_canvas(msg: str) -> bool:
+    """
+    Вернёт True, если в msg встречаются оба слова "холст" и "сюда"
+    (регистр, порядок и позиция не важны).
+    Точное совпадение слов (по границам слова).
+    """
+    return (bool(re.search(r'\bхолст\b', msg, flags=re.IGNORECASE)) and
+            bool(re.search(r'\bсюда\b', msg, flags=re.IGNORECASE)))
+
+# Вариант, допускающий приставки/окончания у "холст" (если нужен):
+#def requiring_canvas_fuzzy(msg: str) -> bool:
+#    """
+#    То же самое, но слово "холст" может иметь окончания (холста, холстом и т.д.).
+#    """
+#    return (bool(re.search(r'\bхолст\w*\b', msg, flags=re.IGNORECASE)) and
+#            bool(re.search(r'\bсюда\b', msg, flags=re.IGNORECASE)))
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -33,7 +53,7 @@ def send_welcome(message):
 
 @bot.message_handler(content_types=['text'])
 def text_messages(message):
-    if message.text == canvas_command:
+    if requiring_canvas(message):
         # Создаём белое изображение (например, 1200x800 пикселей)
         img = Image.new("RGB", (1200, 800), color="white")
 
@@ -48,7 +68,8 @@ def text_messages(message):
 
         bio.close()
         del img
-
+    elif message == test_command:
+        bot.send_message(message.chat.id, "Сэр, я жив!", reply_markup=menu)
 
 # ===== 4. Keep-alive (самопинг) =====
 def keep_alive():
@@ -56,7 +77,7 @@ def keep_alive():
     Функция каждые 10 минут пингует сам Render-сервис,
     чтобы сервер не "уснул".
     """
-    url = "https://knight-s-hand-bot.onrender.com"  # 👈 замени на адрес своего проекта
+    url = "https://knight-s-hand-bot.onrender.com"
     while True:
         try:
             requests.get(url)
