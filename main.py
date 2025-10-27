@@ -40,7 +40,7 @@ def requiring_canvas(msg) -> bool:
         return False
 
     text = msg.text.lower()
-    return "холст" in text and "сюда" in text
+    return "холст" in text
 
 # Вариант, допускающий приставки/окончания у "холст" (если нужен):
 #def requiring_canvas_fuzzy(msg: str) -> bool:
@@ -71,7 +71,7 @@ def text_messages(message):
 
         bio.close()
         del img
-    elif message == test_command:
+    if message == test_command:
         bot.send_message(message.chat.id, "Сэр, я жив!", reply_markup=menu)
 
 # ===== 4. Keep-alive (самопинг) =====
