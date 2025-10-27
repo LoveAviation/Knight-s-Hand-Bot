@@ -71,7 +71,7 @@ def text_messages(message):
 
         bio.close()
         del img
-    if message == test_command:
+    if message.text == test_command:
         bot.send_message(message.chat.id, "Сэр, я жив!", reply_markup=menu)
 
 # ===== 4. Keep-alive (самопинг) =====
