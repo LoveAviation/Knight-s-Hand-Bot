@@ -1,14 +1,25 @@
 import os
-import telebot
-from telebot import types
+import threading
+import time
+import requests
 from io import BytesIO
 from PIL import Image
+from flask import Flask
+import telebot
+from telebot import types
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
     raise RuntimeError("TELEGRAM_TOKEN не задан. Установите переменную окружения.")
 
 bot = telebot.TeleBot(TOKEN)
+
+# ===== 2. Flask сервер =====
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "I'm alive!"  # Render проверяет, жив ли сервер
 
 canvas_command = "Холст сюда!"
 
@@ -37,4 +48,29 @@ def text_messages(message):
 
         bio.close()
         del img
-bot.infinity_polling()
+
+
+# ===== 4. Keep-alive (самопинг) =====
+def keep_alive():
+    """
+    Функция каждые 10 минут пингует сам Render-сервис,
+    чтобы сервер не "уснул".
+    """
+    url = "https://knight-s-hand-bot.onrender.com"  # 👈 замени на адрес своего проекта
+    while True:
+        try:
+            requests.get(url)
+            print("✅ Self-ping sent to keep the app alive")
+        except Exception as e:
+            print(f"⚠️ Ping failed: {e}")
+        time.sleep(600)  # каждые 10 минут
+
+# ===== 5. Запуск =====
+if __name__ == "__main__":
+    # Отдельные потоки: один для Flask, один для бота, один для пинга
+    threading.Thread(target=keep_alive, daemon=True).start()
+    threading.Thread(target=lambda: bot.infinity_polling(), daemon=True).start()
+
+    # Flask слушает порт Render-а
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
