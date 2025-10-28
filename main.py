@@ -25,10 +25,10 @@ def home():
 canvas_command = "Холст сюда!"
 test_command = "Ты жив?"
 
-menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
-canvas = types.KeyboardButton(canvas_command)
-test = types.KeyboardButton(test_command)
-menu.add(canvas, test)
+#menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
+#canvas = types.KeyboardButton(canvas_command)
+#test = types.KeyboardButton(test_command)
+#menu.add(canvas, test)
 
 def requiring_canvas(msg) -> bool:
     """
@@ -42,17 +42,13 @@ def requiring_canvas(msg) -> bool:
     text = msg.text.lower()
     return "холст" in text
 
-# Вариант, допускающий приставки/окончания у "холст" (если нужен):
-#def requiring_canvas_fuzzy(msg: str) -> bool:
-#    """
-#    То же самое, но слово "холст" может иметь окончания (холста, холстом и т.д.).
-#    """
-#    return (bool(re.search(r'\bхолст\w*\b', msg, flags=re.IGNORECASE)) and
-#            bool(re.search(r'\bсюда\b', msg, flags=re.IGNORECASE)))
-
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.send_message(message.chat.id,"Привет! \nЯ пока что могу только подносить холст в чат группы, но надеюсь смогу большее!", reply_markup=menu)
+    bot.send_message(message.chat.id,"Привет! \nЯ пока что могу только подносить холст в чат группы, но надеюсь смогу большее!")
+
+@bot.message_handler(commands=['alive'])
+def is_alive(message):
+    bot.send_message(message.chat.id,"Сэр, я жив!")
 
 @bot.message_handler(content_types=['text'])
 def text_messages(message):
@@ -71,8 +67,6 @@ def text_messages(message):
 
         bio.close()
         del img
-    if message.text == test_command:
-        bot.send_message(message.chat.id, "Сэр, я жив!", reply_markup=menu)
 
 # ===== 4. Keep-alive (самопинг) =====
 def keep_alive():
