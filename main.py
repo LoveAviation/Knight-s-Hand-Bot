@@ -6,8 +6,6 @@ from io import BytesIO
 from PIL import Image
 from flask import Flask
 import telebot
-from telebot import types
-import re
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -26,11 +24,6 @@ def home():
 
 canvas_command = "Холст сюда!"
 test_command = "Ты жив?"
-
-#menu = types.ReplyKeyboardMarkup(resize_keyboard=True)
-#canvas = types.KeyboardButton(canvas_command)
-#test = types.KeyboardButton(test_command)
-#menu.add(canvas, test)
 
 def requiring_canvas(msg) -> bool:
     """
@@ -106,7 +99,7 @@ def ask_ai(prompt):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "llama3-70b-8192",   # Лучшая бесплатная модель
+        "model": "mixtral-8x7b-32768",   # Лучшая бесплатная модель
         "messages": [
             {"role": "user", "content": prompt}
         ]
