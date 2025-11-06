@@ -9,11 +9,13 @@ import telebot
 from telebot import types
 import re
 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOKEN:
     raise RuntimeError("TELEGRAM_TOKEN не задан. Установите переменную окружения.")
 
 bot = telebot.TeleBot(TOKEN)
+BOT_NAME = "рука рыцаря"
 
 # ===== 2. Flask сервер =====
 app = Flask(__name__)
@@ -67,6 +69,20 @@ def text_messages(message):
 
         bio.close()
         del img
+    else:
+        text = message.text.lower()
+
+        if BOT_NAME not in text:
+            return
+
+        prompt = text.replace(BOT_NAME, "").strip()
+        if not prompt:
+            prompt = "Привет! Что хочешь спросить?"
+
+        bot.send_chat_action(message.chat.id, 'typing')
+
+        answer = ask_ai(prompt)
+        bot.send_message(message.chat.id, answer)
 
 # ===== 4. Keep-alive (самопинг) =====
 def keep_alive():
@@ -82,6 +98,25 @@ def keep_alive():
         except Exception as e:
             print(f"⚠️ Ping failed: {e}")
         time.sleep(600)  # каждые 10 минут
+
+def ask_ai(prompt):
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "llama3-70b-8192",   # Лучшая бесплатная модель
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+    r = requests.post(url, json=data, headers=headers)
+    try:
+        return r.json()["choices"][0]["message"]["content"]
+    except:
+        return "Ошибка работы с ИИ."
+
 
 # ===== 5. Запуск =====
 if __name__ == "__main__":

@@ -2,3 +2,4 @@ pytelegrambotapi
 flask
 pillow
 python-dotenv
+requests
