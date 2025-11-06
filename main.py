@@ -6,6 +6,7 @@ from io import BytesIO
 from PIL import Image
 from flask import Flask
 import telebot
+import requests
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -74,7 +75,7 @@ def text_messages(message):
 
         bot.send_chat_action(message.chat.id, 'typing')
 
-        answer = ask_ai(prompt)
+        answer = ask_ai_verbose(prompt)
         bot.send_message(message.chat.id, answer)
 
 # ===== 4. Keep-alive (самопинг) =====
@@ -92,23 +93,62 @@ def keep_alive():
             print(f"⚠️ Ping failed: {e}")
         time.sleep(600)  # каждые 10 минут
 
-def ask_ai(prompt):
+
+def ask_ai_verbose(prompt):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     data = {
-        "model": "mixtral-8x7b-32768",   # Лучшая бесплатная модель
+        # Используем надежную модель
+        "model": "mixtral-8x7b-32768",
         "messages": [
             {"role": "user", "content": prompt}
         ]
     }
-    r = requests.post(url, json=data, headers=headers)
+
+    # Инициализируем r вне try, чтобы к нему можно было обратиться в except
+    r = None
+
     try:
-        return r.json()["choices"][0]["message"]["content"]
-    except:
-        return "Ошибка работы с ИИ."
+        r = requests.post(url, json=data, headers=headers, timeout=30)
+
+        # 1. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверка статуса HTTP-ответа
+        r.raise_for_status()
+
+        response_json = r.json()
+
+        if "choices" in response_json and len(response_json["choices"]) > 0:
+            return response_json["choices"][0]["message"]["content"]
+        else:
+            # Сюда попадем, если запрос успешен (200), но ответа нет
+            return "Ошибка работы с ИИ: Не удалось получить ожидаемый контент."
+
+    except requests.exceptions.HTTPError as e:
+        # 2. ОБРАБОТКА ОШИБОК API (401, 404, 429 и т.д.)
+        # Выводим статус-код и текст ответа Groq
+        status_code = r.status_code if r is not None else "Неизвестно"
+        error_text = r.text if r is not None else str(e)
+
+        # Используем f-строку для форматирования
+        detailed_error = f"Ошибка работы с ИИ: API вернул ошибку {status_code}. Ответ: {error_text}"
+        print(f"DEBUG: {detailed_error}")
+        return detailed_error
+
+    except requests.exceptions.RequestException as e:
+        # 3. ОБРАБОТКА ОШИБОК СЕТИ/ТАЙМАУТА
+        # Выводим тип сетевой ошибки (например, ConnectionError, Timeout)
+        detailed_error = f"Ошибка работы с ИИ: Проблема с подключением к сети или таймаут. Детали: {type(e).__name__} - {e}"
+        print(f"DEBUG: {detailed_error}")
+        return detailed_error
+
+    except Exception as e:
+        # 4. Общая обработка других ошибок (например, неверный формат JSON)
+        # Выводим общее сообщение об ошибке
+        detailed_error = f"Ошибка работы с ИИ: Непредвиденная проблема. Детали: {type(e).__name__} - {e}"
+        print(f"DEBUG: {detailed_error}")
+        return detailed_error
 
 
 # ===== 5. Запуск =====
