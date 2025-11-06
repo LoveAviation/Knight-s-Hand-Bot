@@ -102,7 +102,7 @@ def ask_ai_verbose(prompt):
     }
     data = {
         # Используем надежную модель
-        "model": "mixtral-8x7b-32768",
+        "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "user", "content": prompt}
         ]
